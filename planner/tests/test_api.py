@@ -140,3 +140,18 @@ class RouteAPITests(TestCase):
         self.assertEqual(response.json()["status"], "ok")
         self.assertEqual(response.json()["total_stations"], 1)
         self.assertEqual(response.json()["located_stations"], 1)
+
+    def test_health_is_unavailable_without_a_station_catalog(self):
+        Station.objects.all().delete()
+        response = self.client.get(reverse("health"))
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["status"], "needs_data")
+        self.assertEqual(response.json()["total_stations"], 0)
+
+    def test_health_is_unavailable_without_usable_station_coordinates(self):
+        Station.objects.update(latitude=None)
+        response = self.client.get(reverse("health"))
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["status"], "needs_data")
+        self.assertEqual(response.json()["total_stations"], 1)
+        self.assertEqual(response.json()["located_stations"], 0)

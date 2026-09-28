@@ -13,7 +13,7 @@ review the price shown by Render before creating the service.
 3. Review the 0.5 CPU / 512 MB service and 1 GB disk, then create the service.
 4. Wait for the build and `/api/health/` readiness check to succeed.
 5. Open the supplied `https://…onrender.com` address. Set the Postman collection's
-   `base_url` variable to that address.
+   `baseUrl` variable to that address.
 
 The Blueprint generates a secret key and sets `DJANGO_DEBUG=0`. Render supplies the
 exact allowed hostname automatically. For a custom domain, add that domain to
@@ -24,6 +24,25 @@ The build installs the pinned dependencies from `requirements.txt` and collects 
 files. Each startup applies migrations and imports the two checked-in CSV files, then
 starts Gunicorn. The import does not call a geocoder or routing service and does not
 delete saved route plans. Dataset enrichment is a separate, offline workflow.
+
+## Temporary deployment without a disk
+
+The initial connector-based deployment can use `RUNTIME_DIR=.runtime` until the
+approved disk is attached in the Render Dashboard. **This temporary storage is
+ephemeral, even on a paid service.** Saved route IDs and caches disappear on a
+restart or redeploy. The startup import restores the station catalog, so the API
+can still run, but persistence is not complete until both steps below are done:
+
+1. Open the service's **Disks** page, add a **1 GB** disk mounted at **`/var/data`**,
+   and wait for the triggered deployment to complete.
+2. On its **Environment** page, change `RUNTIME_DIR` to **`/var/data`**, save and
+   redeploy. Verify `/api/health/` returns HTTP 200 with nonzero station and
+   coordinate counts, then generate fresh demo routes.
+
+Attaching a disk does not copy the earlier `.runtime` database. If any initial
+route history must be retained, take a consistent SQLite backup before the first
+redeploy and restore it to the disk; otherwise those temporary route IDs expire.
+The checked-in Blueprint already defines the finished disk-backed configuration.
 
 ## Storage and performance
 

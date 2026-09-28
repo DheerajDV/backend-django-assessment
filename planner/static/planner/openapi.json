@@ -41,6 +41,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "Not ready: station data or sourced coordinates are missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
           }
         }
       }

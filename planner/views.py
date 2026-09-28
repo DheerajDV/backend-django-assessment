@@ -29,13 +29,15 @@ def api_docs(request):
 def health(request):
     total = Station.objects.count()
     located = Station.objects.filter(latitude__isnull=False, longitude__isnull=False).count()
+    ready = total > 0 and located > 0
     return JsonResponse(
         {
-            "status": "ok" if total else "needs_data",
+            "status": "ok" if ready else "needs_data",
             "django_version": __import__("django").get_version(),
             "total_stations": total,
             "located_stations": located,
-        }
+        },
+        status=200 if ready else 503,
     )
 
 
