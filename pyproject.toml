@@ -1,0 +1,24 @@
+[project]
+name = "spotter-fuel-planner"
+version = "0.1.0"
+description = "Django route and fuel cost planning assessment"
+requires-python = ">=3.12"
+dependencies = [
+    "Django==6.1.1",
+    "requests==2.34.2",
+    "shapely==2.1.2",
+    "pyproj==3.8.0",
+    "gunicorn==26.2.0",
+    "whitenoise==6.12.0",
+]
+
+[dependency-groups]
+dev = ["ruff==0.16.9"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = [".bootstrap", "planner/migrations"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

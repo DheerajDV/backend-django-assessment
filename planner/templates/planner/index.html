@@ -1,0 +1,66 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Fuelwise — U.S. route & fuel planner</title>
+  <link rel="stylesheet" href="{% static 'planner/style.css' %}">
+  <script src="{% static 'planner/index.js' %}" defer></script>
+</head>
+<body>
+  <header class="site-header wrap">
+    <a class="wordmark" href="/" aria-label="Fuelwise home"><span class="brand-icon" aria-hidden="true">↗</span>fuelwise<span class="brand-dot">.</span></a>
+    <nav aria-label="Main navigation"><a href="/api/docs/">Explore the API <span aria-hidden="true">↗</span></a><a href="/api/health/" target="_blank" rel="noopener">API status <span aria-hidden="true">↗</span></a></nav>
+  </header>
+
+  <main class="wrap home-main">
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> U.S. ROUTE & FUEL PLANNER</p>
+      <h1 id="page-title">A good route.<br>A smarter fuel plan.</h1>
+      <p class="intro-copy">Choose your start and finish. See the road ahead, where to refuel, and what your additional fuel will cost.</p>
+      <div class="vehicle-spec" aria-label="Vehicle assumptions">
+        <div><strong>500<span>mi</span></strong><span>Maximum range</span></div>
+        <div><strong>10<span>mpg</span></strong><span>Fuel efficiency</span></div>
+        <div><strong>50<span>gal</span></strong><span>Tank capacity</span></div>
+      </div>
+      <div class="explanation">
+        <span class="small-number">01 / 03</span>
+        <p><strong>Road route first.</strong> A driving route connects your U.S. locations.</p>
+        <span class="small-number">02 / 03</span>
+        <p><strong>Prices along the way.</strong> The supplied station dataset provides fuel prices.</p>
+        <span class="small-number">03 / 03</span>
+        <p><strong>A clear purchasing plan.</strong> See stop-by-stop purchases and the assumptions behind them.</p>
+      </div>
+    </section>
+
+    <section class="planner-card" aria-labelledby="form-title">
+      <div class="card-heading"><p class="eyebrow">YOUR NEXT TRIP</p><span class="pill">U.S. locations</span></div>
+      <h2 id="form-title">Where are you headed?</h2>
+      <p class="muted">Use a city and state, or a full street address.</p>
+      <form id="route-form">
+        {% csrf_token %}
+        <div class="journey-fields">
+          <div class="field"><label for="start"><span class="location-dot origin-dot" aria-hidden="true"></span>Starting location</label><input id="start" name="start" type="text" autocomplete="off" placeholder="Chicago, IL" maxlength="200" required></div>
+          <div class="field"><label for="finish"><span class="location-dot destination-dot" aria-hidden="true"></span>Destination</label><input id="finish" name="finish" type="text" autocomplete="off" placeholder="Dallas, TX" maxlength="200" required></div>
+        </div>
+        <div class="field fuel-field"><label for="initial-fuel">Fuel already in the tank <span class="optional">gallons</span></label><input id="initial-fuel" name="initial_fuel_gallons" type="number" min="0" max="50" step="0.1" value="50" required aria-describedby="fuel-help"><p id="fuel-help" class="field-help">Default: a full tank. This fuel is treated as already paid for and is excluded from the purchase cost.</p></div>
+        <button id="submit-button" class="button primary" type="submit"><span>Plan my route</span><span aria-hidden="true">↗</span></button>
+        <p id="request-status" class="request-status" role="status" aria-live="polite" hidden></p>
+        <div id="request-error" class="notice error" role="alert" hidden></div>
+      </form>
+      <div class="examples"><span>Try a trip</span><button type="button" data-start="Chicago, IL" data-finish="Milwaukee, WI">Chicago → Milwaukee</button><button type="button" data-start="Chicago, IL" data-finish="Dallas, TX">Chicago → Dallas</button></div>
+      <div class="data-note"><span aria-hidden="true">ⓘ</span><p>Coverage depends on station coordinates available in the imported dataset. Your result includes coverage, model assumptions, and any limitations.</p></div>
+    </section>
+
+    <section id="route-result" class="result-card" aria-labelledby="result-title" hidden>
+      <div><p class="eyebrow">YOUR PLAN IS READY</p><h2 id="result-title"></h2><p id="result-summary" class="muted"></p></div>
+      <a id="result-link" class="button primary" href="/">View route & fuel stops <span aria-hidden="true">↗</span></a>
+      <div id="result-warning" class="notice" hidden></div>
+      <details class="response-details"><summary>View API response</summary><pre id="response-json"></pre></details>
+    </section>
+  </main>
+  <footer class="site-footer wrap"><p>A small, transparent route-planning API.</p><p>Routing: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> · Map data: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a></p></footer>
+</body>
+</html>

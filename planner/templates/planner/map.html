@@ -1,0 +1,37 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Your route — Fuelwise</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="{% static 'planner/style.css' %}">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+  <script src="{% static 'planner/map.js' %}" defer></script>
+</head>
+<body>
+  <header class="site-header wrap"><a class="wordmark" href="/" aria-label="Fuelwise home"><span class="brand-icon" aria-hidden="true">↗</span>fuelwise<span class="brand-dot">.</span></a><nav aria-label="Main navigation"><a href="/">← Plan another trip</a><a id="json-link" href="/api/health/" target="_blank" rel="noopener">View JSON ↗</a></nav></header>
+  <main class="wrap map-main">
+    <div class="route-heading"><div><p class="eyebrow">YOUR ROAD AHEAD</p><h1 id="route-title" class="route-title">Your route & fuel plan</h1><p id="route-subtitle" class="muted"></p></div><span class="pill">500 mi range · 10 mpg</span></div>
+    <div class="summary-grid" aria-label="Trip summary">
+      <div class="summary-stat"><span>Route distance</span><strong id="distance-value">—</strong></div>
+      <div class="summary-stat"><span>Estimated driving time</span><strong id="duration-value">—</strong></div>
+      <div class="summary-stat cost-stat"><span>Additional fuel purchases</span><strong id="cost-value">—</strong><small id="cost-note">Fuel already in the tank is excluded.</small></div>
+      <div class="summary-stat"><span>Planned fuel stops</span><strong id="stops-value">—</strong></div>
+    </div>
+    <div id="warnings-panel" class="notice" hidden><strong>Before you use this estimate</strong><ul id="warnings-list"></ul></div>
+    <section class="route-workspace" aria-label="Map and fuel stops">
+      <div class="map-panel"><div id="map" role="region" aria-label="Interactive map of the route and fuel stops"><noscript>Enable JavaScript to view the interactive map. The API response remains available using View JSON.</noscript></div><p id="map-error" class="notice error map-error" role="alert" hidden></p><div class="map-legend"><span><i class="legend-route" aria-hidden="true"></i>Driving route</span><span><i class="legend-stop" aria-hidden="true"></i>Fuel stop</span><span class="muted">Select a stop for details</span></div></div>
+      <aside class="stops-panel"><div class="stops-heading"><p class="eyebrow">ALONG THE WAY</p><h2>Your fuel stops</h2><p class="muted">Purchases in travel order.</p></div><ol id="stops-list" class="stops-list"></ol><div id="no-stops" class="empty-stops" hidden><span aria-hidden="true">✓</span><h3>No purchase needed</h3><p>Your initial fuel covers this trip under the stated model.</p></div></aside>
+    </section>
+    <section class="detail-grid" aria-label="Fuel accounting and assumptions">
+      <div class="detail-card"><p class="eyebrow">FUEL ACCOUNTING</p><h2>Every gallon accounted for.</h2><dl class="accounting"><div><dt>Initial fuel, already paid for</dt><dd id="initial-value">—</dd></div><div><dt>Fuel purchased along the route</dt><dd id="purchased-value">—</dd></div><div><dt>Estimated fuel consumed</dt><dd id="consumed-value">—</dd></div><div><dt>Fuel remaining at destination</dt><dd id="remaining-value">—</dd></div></dl></div>
+      <div class="detail-card"><p class="eyebrow">READ THE ESTIMATE</p><h2>Coverage & assumptions</h2><p id="coverage-text" class="muted"></p><ul id="assumptions-list" class="assumptions-list"></ul><p id="request-meta" class="request-meta"></p></div>
+    </section>
+  </main>
+  <footer class="site-footer wrap"><p>Prices come from the supplied CSV; this is an estimate, not a live price quote.</p><p>Routing: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> · Map data: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a></p></footer>
+  {{ plan|json_script:"route-plan-data" }}
+</body>
+</html>

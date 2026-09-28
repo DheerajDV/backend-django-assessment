@@ -1,0 +1,405 @@
+{
+  "info": {
+    "name": "Backend Django Engineer — Route & Fuel Assessment",
+    "description": "Local API demonstration. Start the Django server and import/enrich the supplied CSV first. Run requests in order. Default tank: 50 gallons, already paid for; total_fuel_cost covers additional purchases only. Network requests require public routing/geocoding availability. Open the returned map_url in a browser. See docs/DEMO.md for an under-five-minute demonstration outline and coverage limitations.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "routeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mapUrl",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 — Health and dataset coverage",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/health/",
+        "description": "Imported and located counts are separate. A loaded CSV alone does not demonstrate complete geographic coverage."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Health endpoint responds\", () => pm.response.to.have.status(200));",
+              "const health = pm.response.json();",
+              "pm.test(\"Station data has been imported\", () => {",
+              "  pm.expect(health.status).to.equal(\"ok\");",
+              "  pm.expect(health.total_stations).to.be.above(0);",
+              "  pm.expect(health.located_stations).to.be.within(0, health.total_stations);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — Short trip, full initial tank",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/routes/",
+        "description": "With a full prepaid tank this route should require no fuel purchases. Zero purchase cost does not mean that driving consumes no fuel.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Chicago, IL\",\n  \"finish\": \"Milwaukee, WI\",\n  \"initial_fuel_gallons\": 50\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Request succeeds\", () => pm.response.to.have.status(200));",
+              "const plan = pm.response.json();",
+              "if (pm.response.code === 200) {",
+              "  pm.collectionVariables.set(\"routeId\", plan.id);",
+              "  pm.collectionVariables.set(\"mapUrl\", plan.map_url);",
+              "  pm.test(\"A saved map and road geometry are returned\", () => {",
+              "    pm.expect(plan.id).to.be.a(\"string\");",
+              "    pm.expect(plan.map_url).to.include(\"/map/\");",
+              "    pm.expect(plan.route.geometry.type).to.equal(\"LineString\");",
+              "    pm.expect(plan.route.geometry.coordinates.length).to.be.above(1);",
+              "    pm.expect(Number(plan.route.distance_miles)).to.be.above(0);",
+              "  });",
+              "  const fuel = plan.fuel_plan;",
+              "  pm.test(\"Fuel is conserved\", () => {",
+              "    const available = Number(fuel.initial_fuel_gallons) + Number(fuel.fuel_purchased_gallons);",
+              "    const usedAndRemaining = Number(fuel.fuel_consumed_gallons) + Number(fuel.remaining_fuel_gallons);",
+              "    pm.expect(available).to.be.closeTo(usedAndRemaining, 0.05);",
+              "    pm.expect(Number(fuel.remaining_fuel_gallons)).to.be.at.least(0);",
+              "  });",
+              "  pm.test(\"Stop quantities respect tank capacity\", () => {",
+              "    fuel.stops.forEach(stop => {",
+              "      pm.expect(Number(stop.arrival_fuel_gallons)).to.be.at.least(0);",
+              "      pm.expect(Number(stop.departure_fuel_gallons)).to.be.at.most(50.001);",
+              "      pm.expect(Number(stop.departure_fuel_gallons)).to.be.closeTo(Number(stop.arrival_fuel_gallons) + Number(stop.gallons), 0.05);",
+              "      pm.expect(Number(stop.gallons)).to.be.above(0);",
+              "    });",
+              "  });",
+              "  pm.test(\"Purchases sum to the returned total\", () => {",
+              "    const total = fuel.stops.reduce((sum, stop) => sum + Number(stop.cost), 0);",
+              "    pm.expect(Number(fuel.total_fuel_cost)).to.be.closeTo(total, 0.01 + fuel.stops.length * 0.01);",
+              "  });",
+              "  pm.test(\"Coverage, assumptions, and external request counts are visible\", () => {",
+              "    pm.expect(plan.metadata.assumptions).to.be.an(\"array\");",
+              "    pm.expect(plan.metadata.warnings).to.be.an(\"array\");",
+              "    pm.expect(Number(plan.metadata.located_stations)).to.be.at.most(Number(plan.metadata.total_stations));",
+              "    pm.expect(Number(plan.metadata.routing_api_calls)).to.be.within(0, 3);",
+              "  });",
+              "}",
+              "if (pm.response.code === 200) pm.test(\"Short trip requires no additional fuel\", () => {",
+              "  pm.expect(plan.fuel_plan.stops).to.have.lengthOf(0);",
+              "  pm.expect(Number(plan.fuel_plan.total_fuel_cost)).to.equal(0);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Long trip with fuel stops",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/routes/",
+        "description": "Review the returned map_url and fuel_plan.stops. Assumptions and station coverage are part of the result.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Chicago, IL\",\n  \"finish\": \"Dallas, TX\",\n  \"initial_fuel_gallons\": 50\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Request succeeds\", () => pm.response.to.have.status(200));",
+              "const plan = pm.response.json();",
+              "if (pm.response.code === 200) {",
+              "  pm.collectionVariables.set(\"routeId\", plan.id);",
+              "  pm.collectionVariables.set(\"mapUrl\", plan.map_url);",
+              "  pm.test(\"A saved map and road geometry are returned\", () => {",
+              "    pm.expect(plan.id).to.be.a(\"string\");",
+              "    pm.expect(plan.map_url).to.include(\"/map/\");",
+              "    pm.expect(plan.route.geometry.type).to.equal(\"LineString\");",
+              "    pm.expect(plan.route.geometry.coordinates.length).to.be.above(1);",
+              "    pm.expect(Number(plan.route.distance_miles)).to.be.above(0);",
+              "  });",
+              "  const fuel = plan.fuel_plan;",
+              "  pm.test(\"Fuel is conserved\", () => {",
+              "    const available = Number(fuel.initial_fuel_gallons) + Number(fuel.fuel_purchased_gallons);",
+              "    const usedAndRemaining = Number(fuel.fuel_consumed_gallons) + Number(fuel.remaining_fuel_gallons);",
+              "    pm.expect(available).to.be.closeTo(usedAndRemaining, 0.05);",
+              "    pm.expect(Number(fuel.remaining_fuel_gallons)).to.be.at.least(0);",
+              "  });",
+              "  pm.test(\"Stop quantities respect tank capacity\", () => {",
+              "    fuel.stops.forEach(stop => {",
+              "      pm.expect(Number(stop.arrival_fuel_gallons)).to.be.at.least(0);",
+              "      pm.expect(Number(stop.departure_fuel_gallons)).to.be.at.most(50.001);",
+              "      pm.expect(Number(stop.departure_fuel_gallons)).to.be.closeTo(Number(stop.arrival_fuel_gallons) + Number(stop.gallons), 0.05);",
+              "      pm.expect(Number(stop.gallons)).to.be.above(0);",
+              "    });",
+              "  });",
+              "  pm.test(\"Purchases sum to the returned total\", () => {",
+              "    const total = fuel.stops.reduce((sum, stop) => sum + Number(stop.cost), 0);",
+              "    pm.expect(Number(fuel.total_fuel_cost)).to.be.closeTo(total, 0.01 + fuel.stops.length * 0.01);",
+              "  });",
+              "  pm.test(\"Coverage, assumptions, and external request counts are visible\", () => {",
+              "    pm.expect(plan.metadata.assumptions).to.be.an(\"array\");",
+              "    pm.expect(plan.metadata.warnings).to.be.an(\"array\");",
+              "    pm.expect(Number(plan.metadata.located_stations)).to.be.at.most(Number(plan.metadata.total_stations));",
+              "    pm.expect(Number(plan.metadata.routing_api_calls)).to.be.within(0, 3);",
+              "  });",
+              "}",
+              "if (pm.response.code === 200) pm.test(\"Long trip contains at least one fuel purchase\", () => {",
+              "  pm.expect(Number(plan.route.distance_miles)).to.be.above(500);",
+              "  pm.expect(plan.fuel_plan.stops.length).to.be.above(0);",
+              "  pm.expect(Number(plan.fuel_plan.total_fuel_cost)).to.be.above(0);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Repeat long trip to inspect caching",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/routes/",
+        "description": "Same inputs as request 03. Compare metadata.elapsed_ms and external API call counts. Caches reduce repeated upstream work; each saved route plan can still receive a new ID. No fixed latency is asserted.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Chicago, IL\",\n  \"finish\": \"Dallas, TX\",\n  \"initial_fuel_gallons\": 50\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Request succeeds\", () => pm.response.to.have.status(200));",
+              "const plan = pm.response.json();",
+              "if (pm.response.code === 200) {",
+              "  pm.collectionVariables.set(\"routeId\", plan.id);",
+              "  pm.collectionVariables.set(\"mapUrl\", plan.map_url);",
+              "  pm.test(\"A saved map and road geometry are returned\", () => {",
+              "    pm.expect(plan.id).to.be.a(\"string\");",
+              "    pm.expect(plan.map_url).to.include(\"/map/\");",
+              "    pm.expect(plan.route.geometry.type).to.equal(\"LineString\");",
+              "    pm.expect(plan.route.geometry.coordinates.length).to.be.above(1);",
+              "    pm.expect(Number(plan.route.distance_miles)).to.be.above(0);",
+              "  });",
+              "  const fuel = plan.fuel_plan;",
+              "  pm.test(\"Fuel is conserved\", () => {",
+              "    const available = Number(fuel.initial_fuel_gallons) + Number(fuel.fuel_purchased_gallons);",
+              "    const usedAndRemaining = Number(fuel.fuel_consumed_gallons) + Number(fuel.remaining_fuel_gallons);",
+              "    pm.expect(available).to.be.closeTo(usedAndRemaining, 0.05);",
+              "    pm.expect(Number(fuel.remaining_fuel_gallons)).to.be.at.least(0);",
+              "  });",
+              "  pm.test(\"Stop quantities respect tank capacity\", () => {",
+              "    fuel.stops.forEach(stop => {",
+              "      pm.expect(Number(stop.arrival_fuel_gallons)).to.be.at.least(0);",
+              "      pm.expect(Number(stop.departure_fuel_gallons)).to.be.at.most(50.001);",
+              "      pm.expect(Number(stop.departure_fuel_gallons)).to.be.closeTo(Number(stop.arrival_fuel_gallons) + Number(stop.gallons), 0.05);",
+              "      pm.expect(Number(stop.gallons)).to.be.above(0);",
+              "    });",
+              "  });",
+              "  pm.test(\"Purchases sum to the returned total\", () => {",
+              "    const total = fuel.stops.reduce((sum, stop) => sum + Number(stop.cost), 0);",
+              "    pm.expect(Number(fuel.total_fuel_cost)).to.be.closeTo(total, 0.01 + fuel.stops.length * 0.01);",
+              "  });",
+              "  pm.test(\"Coverage, assumptions, and external request counts are visible\", () => {",
+              "    pm.expect(plan.metadata.assumptions).to.be.an(\"array\");",
+              "    pm.expect(plan.metadata.warnings).to.be.an(\"array\");",
+              "    pm.expect(Number(plan.metadata.located_stations)).to.be.at.most(Number(plan.metadata.total_stations));",
+              "    pm.expect(Number(plan.metadata.routing_api_calls)).to.be.within(0, 3);",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — Retrieve the most recently saved route",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/routes/{{routeId}}/",
+        "description": "Run a successful route POST first. The routeId variable is set automatically."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Saved route exists\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) pm.test(\"The saved route ID is preserved\", () => {",
+              "  pm.expect(pm.response.json().id).to.equal(pm.collectionVariables.get(\"routeId\"));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 — Reject a location outside the United States",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/routes/",
+        "description": "The API accepts U.S. locations only. This request must be rejected, not silently substituted with a U.S. location.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Toronto, Ontario, Canada\",\n  \"finish\": \"Detroit, MI\",\n  \"initial_fuel_gallons\": 50\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Location is rejected\", () => pm.expect(pm.response.code).to.be.oneOf([400, 422]));",
+              "pm.test(\"A structured error explains the failure\", () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.error.code).to.be.a(\"string\");",
+              "  pm.expect(body.error.message).to.be.a(\"string\").and.not.empty;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 — Reject fuel above tank capacity",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/routes/",
+        "description": "Validation happens before calling upstream services.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Chicago, IL\",\n  \"finish\": \"Dallas, TX\",\n  \"initial_fuel_gallons\": 51\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Invalid capacity returns 400\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Validation identifies the fuel field\", () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.error.code).to.equal(\"invalid_request\");",
+              "  pm.expect(body.error.message).to.include(\"initial_fuel_gallons\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

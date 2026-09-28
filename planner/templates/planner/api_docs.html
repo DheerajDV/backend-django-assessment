@@ -1,0 +1,60 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Fuelwise — API explorer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.33.0/swagger-ui.css" integrity="sha384-Ov4/wv3j2bmct8cDc5X4ngJZohVPzEmc6uDPH8WeljUxO5vtoykvMEfbu9Vh6RaW" crossorigin="anonymous">
+  <link rel="stylesheet" href="{% static 'planner/style.css' %}">
+  <style>
+    .api-main { padding-top: 40px; padding-bottom: 48px; }
+    .api-intro { max-width: 850px; margin-bottom: 28px; }
+    .api-intro h1 { font-size: clamp(32px, 4vw, 48px); letter-spacing: -1.5px; margin: 12px 0; }
+    .api-intro .muted { margin-bottom: 16px; }
+    .api-intro ol { padding-left: 22px; margin: 16px 0; }
+    .api-intro li { margin: 6px 0; }
+    .api-note { margin: 20px 0; padding: 16px 20px; background: var(--pale); border-radius: 12px; font-size: 13px; }
+    .swagger-ui { color: var(--ink); }
+    .swagger-ui .wrapper { max-width: none; padding: 0; }
+    .swagger-ui .info { margin: 20px 0; }
+    .swagger-ui .info .title { font-size: 25px; }
+    .swagger-ui .info hgroup.main { margin: 0 0 12px; }
+    .swagger-ui .scheme-container { box-shadow: none; background: transparent; padding: 12px 0; }
+    .swagger-ui .opblock { border-radius: 12px; box-shadow: none; }
+    .swagger-ui .opblock-tag { padding-left: 0; }
+    .swagger-ui .btn.execute { background: var(--teal); border-color: var(--teal); }
+    .swagger-ui textarea { min-height: 150px; }
+    .swagger-ui .highlight-code > .microlight { max-height: 460px; overflow: auto; }
+    .swagger-ui .model-example { max-height: 480px; overflow: auto; }
+    .swagger-ui .response-col_description__inner p { margin: 8px 0; }
+    .swagger-ui .responses-inner h4 { margin: 12px 0; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.33.0/swagger-ui-bundle.js" integrity="sha384-YDALVcy8kj8yltLBVi1vBiBAUqdxvus673gM8XKwiy6aDUJFXivF/KCufekjYbVf" crossorigin="anonymous" defer></script>
+  <script src="{% static 'planner/swagger-init.js' %}" defer></script>
+</head>
+<body>
+  <header class="site-header wrap">
+    <a class="wordmark" href="/" aria-label="Fuelwise home"><span class="brand-icon" aria-hidden="true">↗</span>fuelwise<span class="brand-dot">.</span></a>
+    <nav aria-label="Main navigation"><a href="/">Route planner</a><a href="{% static 'planner/openapi.json' %}">OpenAPI JSON <span aria-hidden="true">↗</span></a></nav>
+  </header>
+  <main class="wrap api-main">
+    <section class="api-intro" aria-labelledby="page-title">
+      <p class="eyebrow">LIVE API EXPLORER</p>
+      <h1 id="page-title">Make a request. See the result.</h1>
+      <p class="muted">Swagger UI sends real requests to this deployment. No sign-in or API key is required. Click <strong>Try it out</strong>, then <strong>Execute</strong> to run an endpoint.</p>
+      <ol>
+        <li>Check <strong>GET /api/health/</strong> for the Django version and station coverage.</li>
+        <li>Run <strong>POST /api/routes/</strong>, then inspect the returned map URL, fuel stops, cost, and request counts.</li>
+        <li>Repeat the same trip to compare <code>metadata.elapsed_ms</code> and actual external API calls. Paste its <code>id</code> into the retrieval endpoint to read the saved plan.</li>
+      </ol>
+      <div class="api-note"><strong>How to read the cost:</strong> starting fuel is already paid for; <code>total_fuel_cost</code> covers additional purchases only. The vehicle gets 10 mpg with a 50-gallon tank. Only stations with sourced coordinates can be considered. Every successful result reports coverage, assumptions, and warnings; it does not guarantee the cheapest journey across every road or station.</div>
+    </section>
+    <p id="api-load-status" role="status">Loading the API explorer…</p>
+    <noscript><p>JavaScript is required for interactive requests. Download the <a href="{% static 'planner/openapi.json' %}">OpenAPI definition</a> and import it into your API client.</p></noscript>
+    <div id="swagger-ui" data-spec-url="{% static 'planner/openapi.json' %}"></div>
+  </main>
+  <footer class="site-footer wrap"><p>Responses under “Server response” come from live requests.</p><p>Schema models describe the contract; they are not recorded test results.</p></footer>
+</body>
+</html>
