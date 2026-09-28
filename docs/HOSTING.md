@@ -48,6 +48,10 @@ route history must be retained, take a consistent SQLite backup before the first
 redeploy and restore it to the disk; otherwise those temporary route IDs expire.
 The checked-in Blueprint already defines the finished disk-backed configuration.
 
+## Updating the published app
+
+The current service was created from the public repository URL. In this mode, Render does not create Git-provider webhooks, so a GitHub push alone does not deploy it. After checks pass, use **Manual Deploy → Deploy latest commit** on the Render service. Connecting the GitHub repository through Render's Git-provider credentials enables automatic deployments. See [Render's deployment documentation](https://render.com/docs/deploys).
+
 ## Storage and performance
 
 `RUNTIME_DIR=/var/data/fuel-planner-data` places SQLite, route/geocoding caches, and request/provider
