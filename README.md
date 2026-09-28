@@ -4,6 +4,14 @@ A Django 6.1.1 API that finds a driving route between US locations, chooses fuel
 
 Includes live routing, sourced station coordinates, automated tests, a Postman collection, an interactive Swagger API explorer and a production deployment configuration. Coordinate coverage is incomplete: unlocated stations are excluded, and the API reports coverage on every response. This is not a guarantee of the cheapest journey among every road or every station in the original CSV.
 
+## Hosted demo
+
+- [Route planner](https://spotter-fuel-planner-dheeraj.onrender.com/)
+- [Interactive API explorer](https://spotter-fuel-planner-dheeraj.onrender.com/api/docs/)
+- [Health and dataset coverage](https://spotter-fuel-planner-dheeraj.onrender.com/api/health/)
+
+Import `docs/postman_collection.json` for the hosted API. Change its `baseUrl` variable to `http://127.0.0.1:8000` when running locally.
+
 ## Prerequisites
 
 - Python 3.12 or newer (developed and tested with Python 3.13).
