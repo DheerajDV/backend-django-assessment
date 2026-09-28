@@ -6,6 +6,10 @@ compressed, versioned CSS and JavaScript. This is a paid **0.5 CPU / 512 MB** co
 (the tier previously called Starter);
 review the price shown by Render before creating the service.
 
+## Current deployment
+
+The published app is [spotter-fuel-planner-dheeraj.onrender.com](https://spotter-fuel-planner-dheeraj.onrender.com/). Its 1 GB disk is mounted at `/var/data/fuel-planner-data`, and `RUNTIME_DIR` points to that exact directory. Both the mount and environment variable must match; mounting a subdirectory does not persist files stored in its parent.
+
 ## Deploy
 
 1. Push this repository to GitHub and connect that repository in Render.
@@ -46,7 +50,7 @@ The checked-in Blueprint already defines the finished disk-backed configuration.
 
 ## Storage and performance
 
-`RUNTIME_DIR=/var/data` places SQLite, route/geocoding caches, and request/provider
+`RUNTIME_DIR=/var/data/fuel-planner-data` places SQLite, route/geocoding caches, and request/provider
 throttle state on the persistent disk. Saved route IDs survive service restarts and
 deploys. The single Gunicorn worker has two threads to keep memory use modest and
 reduce SQLite contention. This setup is suitable for a low-traffic assessment demo;

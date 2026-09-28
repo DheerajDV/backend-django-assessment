@@ -11,7 +11,7 @@ services:
     healthCheckPath: /api/health/
     disk:
       name: fuel-planner-data
-      mountPath: /var/data
+      mountPath: /var/data/fuel-planner-data
       sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
@@ -21,7 +21,7 @@ services:
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: RUNTIME_DIR
-        value: /var/data
+        value: /var/data/fuel-planner-data
       - key: DJANGO_TRUST_PROXY_HEADERS
         value: "1"
       - key: PYTHONUNBUFFERED
